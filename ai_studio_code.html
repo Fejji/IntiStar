@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inti-Star: Specialty Exam</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --hp-green: #4caf50;
+            --hp-yellow: #ffeb3b;
+            --hp-red: #d32f2f;
+            --text-base: #e0e0e0;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: var(--text-base);
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-boy {
+            width: 100%;
+            max-width: 420px;
+            height: 98vh;
+            background: #7f8fa6;
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 
+                inset 5px 5px 15px rgba(255,255,255,0.1),
+                inset -5px -5px 15px rgba(0,0,0,0.3),
+                0 0 40px rgba(0,0,0,0.8);
+            border: 3px solid #57606f;
+        }
+
+        #screen-frame {
+            flex: 2;
+            background: #000;
+            border: 6px solid #2f3542;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px #000;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        #screen-content {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* --- HUD --- */
+        .hud-box {
+            background: rgba(0, 0, 0, 0.75);
+            border: 2px solid #fff;
+            padding: 6px;
+            position: absolute;
+            width: 120px;
+            color: #fff;
+            z-index: 10;
+        }
+
+        #enemy-hud { top: 5%; right: 5%; text-align: left; }
+        #player-hud { bottom: 30%; left: 5%; text-align: left; }
+
+        .name { 
+            font-size: 8px; margin-bottom: 5px; text-transform: uppercase; 
+            letter-spacing: 1px; color: #fff; text-shadow: 1px 1px 0 #000; 
+        }
+        
+        .hp-bar-container { width: 100%; height: 8px; background: #333; border: 1px solid #fff; }
+        .hp-bar-fill { height: 100%; width: 100%; background: var(--hp-green); transition: width 0.4s; }
+
+        /* --- SPRITES --- */
+        .sprite {
+            position: absolute;
+            font-size: 50px;
+            filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.8));
+        }
+
+        #enemy-sprite { top: 25%; right: 8%; animation: float 3.5s ease-in-out infinite; }
+        #player-sprite { bottom: 5%; left: 8%; }
+
+        #touta-sprite {
+            font-size: 28px;
+            position: absolute;
+            bottom: 0; right: -20px;
+            animation: bounce 2s infinite;
+        }
+
+        /* --- CONTROLS --- */
+        #dialogue-container {
+            height: 70px;
+            min-height: 70px;
+            background: #222;
+            border: 3px solid #444;
+            border-radius: 4px;
+            padding: 8px;
+            color: #7bed9f; 
+            font-size: 10px;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            text-shadow: 0 0 3px rgba(123, 237, 159, 0.5);
+            box-shadow: inset 0 0 10px #000;
+            margin-bottom: 10px;
+        }
+
+        #controls {
+            height: 130px; 
+            min-height: 130px;
+            background: #2f3542;
+            border-radius: 8px;
+            padding: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 8px;
+            border: 2px solid #000;
+        }
+
+        button {
+            background: #dfe4ea;
+            border: 2px solid #a4b0be;
+            border-bottom-width: 4px;
+            border-radius: 5px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 9px; 
+            cursor: pointer;
+            text-transform: uppercase;
+            color: #2f3542;
+            transition: all 0.1s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+        }
+
+        button:active { transform: translateY(3px); border-bottom-width: 1px; }
+        button:disabled { opacity: 0.5; filter: grayscale(1); cursor: wait; }
+
+        .btn-coffee { color: #574b90; font-weight: bold; }
+        .btn-cheer { color: #e15f41; font-weight: bold; }
+        .btn-special { color: #3dc1d3; font-weight: bold; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        .shake { animation: shake 0.4s; }
+        @keyframes shake { 0% { transform: translate(0,0); } 20% { transform: translate(-4px, 4px); } 40% { transform: translate(4px, -4px); } 60% { transform: translate(-4px, 0); } 80% { transform: translate(4px, 0); } 100% { transform: translate(0,0); } }
+
+        /* --- VICTORY OVERLAY --- */
+        #victory-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 20;
+            padding: 20px;
+        }
+        
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 0.9; } }
+
+    </style>
+</head>
+<body>
+
+<div id="game-boy">
+    <div id="screen-frame">
+        <div id="screen-content">
+            <!-- Enemy Group (Right) -->
+            <div id="enemy-hud" class="hud-box">
+                <div class="name">Examen Fin de Spé</div>
+                <div class="hp-bar-container"><div id="enemy-hp-bar" class="hp-bar-fill"></div></div>
+            </div>
+            <div id="enemy-sprite" class="sprite">📚</div>
+
+            <!-- Player Group (Left) -->
+            <div id="player-hud" class="hud-box">
+                <div class="name">Intissar</div>
+                <div class="hp-bar-container"><div id="player-hp-bar" class="hp-bar-fill"></div></div>
+            </div>
+            <div id="player-sprite" class="sprite">
+                👩‍⚕️
+                <div id="touta-sprite">🐈</div>
+            </div>
+            
+            <!-- Victory Screen -->
+            <div id="victory-screen">
+                <h1 style="color:#f1c40f; font-size: 13px; margin-bottom:20px; line-height: 1.6; text-shadow: 2px 2px #d35400;">
+                    YOU GOT THIS INTISSAR!
+                </h1>
+                <p class="pulse" style="font-size:10px; line-height:1.8; color: #fff;">
+                    Me and Touta<br>
+                    believe in you.
+                </p>
+                <div style="font-size: 20px; margin-top: 20px;">🎉👩‍⚕️🐈🎉</div>
+                <button onclick="initGame()" style="margin-top:30px; padding:12px; font-size:9px;">Another Study Break?</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dialogue-container">
+        <span id="typewriter">Booting System...</span>
+    </div>
+
+    <div id="controls">
+        <button onclick="playerAction('attack')">Focus Beam 🖊️</button>
+        <button class="btn-coffee" onclick="playerAction('coffee')">Café Direct ☕</button>
+        <button class="btn-cheer" onclick="playerAction('cheer')">Touta Cheer 🐈</button>
+        <button class="btn-special" onclick="playerAction('book')">B612 Impact ☄️</button>
+    </div>
+</div>
+
+<script>
+    // --- GAME STATS (Longer Battle) ---
+    const maxPlayerHP = 120; // Increased
+    const maxEnemyHP = 150;  // Increased
+    let playerHP = maxPlayerHP;
+    let enemyHP = maxEnemyHP;
+    let isPlayerTurn = true;
+    let toutaBuff = false;
+
+    // --- DOM ---
+    const elDialogue = document.getElementById('typewriter');
+    const elPlayerHP = document.getElementById('player-hp-bar');
+    const elEnemyHP = document.getElementById('enemy-hp-bar');
+    const elEnemySprite = document.getElementById('enemy-sprite');
+    const elPlayerSprite = document.getElementById('player-sprite');
+    const elVictory = document.getElementById('victory-screen');
+    const buttons = document.querySelectorAll('#controls button');
+
+    // --- TEXT DATA (Master Lists) ---
+    const dataAttack = [
+        "Intissar connects the clinical signs!",
+        "Intissar highlights the perfect keyword!",
+        "Intissar recalls the footnote on page 412!",
+        "Differential Diagnosis: Established!",
+        "Intissar uses 'Method of Elimination'!",
+        "Intissar writes with absolute confidence!",
+        "Synapse firing! It's super effective!",
+        "Intissar validates the hypothesis!",
+        "Logical deduction! The answer is C!",
+        "Intissar organizes her notes. Critical Hit!"
+    ];
+
+    const dataCoffee = [
+        "Café Direct Sans Sucre. Pure fuel.",
+        "Dark, strong, and effective. HP +40.",
+        "The bitterness wakes up the neurons!",
+        "No sugar, just raw power.",
+        "Sipping liquid motivation. Focus restored!",
+        "Intissar's heart rate stabilizes. Ready!",
+        "A warm cup of courage. Anxiety drops."
+    ];
+
+    const dataTouta = [
+        "Touta purrs: 'You are the brightest star.'",
+        "Touta judges the exam questions. 'Trash.'",
+        "Touta chases the pen. Stress reduced!",
+        "Touta meows: 'I believe in you, Meow!'",
+        "Touta headbutts your hand. 'Keep going!'",
+        "Touta sits on the syllabus. 'Take a breath.'",
+        "Touta sleeps peacefully. It gives you hope.",
+        "Touta demands pets. You feel calmer."
+    ];
+
+    const dataEnemyNames = [
+        { name: "Ambiguous QCM", dmg: 14 },
+        { name: "Cas Clinique Surprise", dmg: 16 },
+        { name: "Tiny Font Size", dmg: 8 },
+        { name: "Stylo qui bave", dmg: 10 }, 
+        { name: "Fatigue Wave", dmg: 12 },
+        { name: "Hypoglycémie", dmg: 9 },
+        { name: "Stern Professor Glare", dmg: 15 },
+        { name: "Heavy Textbook Fall", dmg: 18 },
+        { name: "Wifi Disconnect", dmg: 5 }
+    ];
+
+    // New: Reactions to enemy attacks (instead of "It's stressful")
+    const dataReactions = [
+        "Anxiety spikes!",
+        "Intissar takes a deep breath.",
+        "Focus levels drop slightly.",
+        "Touta hisses at the paper!",
+        "Is this even on the syllabus?",
+        "Intissar stays calm... barely.",
+        "The pressure is rising.",
+        "A confusing moment!",
+        "Intissar shakes it off.",
+        "Not what we studied for!"
+    ];
+
+    const dataB612 = [
+        "B612 IMPACT! 'L'essentiel est invisible.'",
+        "Intissar draws a sheep. The Exam is confused!",
+        "Starry Night Beam! The Exam is dazzled.",
+        "'On ne voit bien qu'avec le cœur.' CRITICAL!"
+    ];
+
+    // --- DECK SYSTEM (Prevents repeats) ---
+    let decks = {
+        attack: [],
+        coffee: [],
+        touta: [],
+        enemyNames: [],
+        enemyReact: [],
+        b612: []
+    };
+
+    function getCard(category, masterList) {
+        if (!decks[category] || decks[category].length === 0) {
+            decks[category] = [...masterList]; 
+        }
+        const index = Math.floor(Math.random() * decks[category].length);
+        const item = decks[category].splice(index, 1)[0];
+        return item;
+    }
+
+    // --- ENGINE ---
+
+    function typeText(text, callback) {
+        elDialogue.textContent = "";
+        let i = 0;
+        let speed = 20;
+
+        function type() {
+            if (i < text.length) {
+                elDialogue.textContent += text.charAt(i);
+                i++;
+                setTimeout(type, speed);
+            } else if (callback) {
+                setTimeout(callback, 2500); 
+            }
+        }
+        type();
+    }
+
+    function updateHealth() {
+        const pPct = (playerHP / maxPlayerHP) * 100;
+        elPlayerHP.style.width = Math.max(0, pPct) + "%";
+        elPlayerHP.style.background = pPct < 30 ? "#d32f2f" : pPct < 60 ? "#ffeb3b" : "#4caf50";
+
+        const ePct = (enemyHP / maxEnemyHP) * 100;
+        elEnemyHP.style.width = Math.max(0, ePct) + "%";
+        elEnemyHP.style.background = ePct < 30 ? "#d32f2f" : ePct < 60 ? "#ffeb3b" : "#4caf50";
+    }
+
+    function toggleButtons(enable) {
+        buttons.forEach(btn => btn.disabled = !enable);
+    }
+
+    function playerAction(action) {
+        if (!isPlayerTurn) return;
+        isPlayerTurn = false;
+        toggleButtons(false);
+
+        if (action === 'attack') {
+            let dmg = Math.floor(Math.random() * 12) + 15; 
+            if (toutaBuff) { dmg += 8; toutaBuff = false; }
+            
+            elPlayerSprite.style.transform = "translateX(30px)";
+            setTimeout(() => elPlayerSprite.style.transform = "translateX(0)", 200);
+            elEnemySprite.classList.add('shake');
+            setTimeout(() => elEnemySprite.classList.remove('shake'), 500);
+
+            enemyHP -= dmg;
+            const msg = getCard('attack', dataAttack);
+            typeText(`${msg} (-${dmg} HP)`, checkWin);
+        } 
+        else if (action === 'coffee') {
+            let heal = 40;
+            playerHP = Math.min(maxPlayerHP, playerHP + heal);
+            const msg = getCard('coffee', dataCoffee);
+            typeText(`${msg}`, checkWin);
+        } 
+        else if (action === 'cheer') {
+            const quote = getCard('touta', dataTouta);
+            toutaBuff = true;
+            let heal = 15;
+            playerHP = Math.min(maxPlayerHP, playerHP + heal);
+            typeText(quote, checkWin);
+        }
+        else if (action === 'book') {
+            let dmg = 30;
+            enemyHP -= dmg;
+            elEnemySprite.classList.add('shake');
+            setTimeout(() => elEnemySprite.classList.remove('shake'), 500);
+            const msg = getCard('b612', dataB612);
+            typeText(msg, checkWin);
+        }
+        updateHealth();
+    }
+
+    function enemyTurn() {
+        if (enemyHP <= 0) return;
+
+        const attack = getCard('enemyNames', dataEnemyNames);
+        const reaction = getCard('enemyReact', dataReactions);
+        
+        typeText(`Exam uses '${attack.name}'! ${reaction}`, () => {
+            elPlayerSprite.classList.add('shake');
+            setTimeout(() => elPlayerSprite.classList.remove('shake'), 500);
+            
+            playerHP -= attack.dmg;
+            updateHealth();
+
+            if (playerHP <= 0) {
+                typeText("Intissar is exhausted... Take a nap and refresh.", () => {
+                    toggleButtons(false); 
+                });
+            } else {
+                typeText("Intissar takes a deep breath. Your turn!", () => {
+                    isPlayerTurn = true;
+                    toggleButtons(true);
+                });
+            }
+        });
+    }
+
+    function checkWin() {
+        updateHealth();
+        if (enemyHP <= 0) {
+            setTimeout(() => {
+                elVictory.style.display = 'flex';
+            }, 500);
+        } else {
+            enemyTurn();
+        }
+    }
+
+    function initGame() {
+        playerHP = maxPlayerHP;
+        enemyHP = maxEnemyHP;
+        isPlayerTurn = true;
+        toutaBuff = false;
+        
+        // Reset Decks
+        decks = { attack: [], coffee: [], touta: [], enemyNames: [], enemyReact: [], b612: [] };
+
+        elVictory.style.display = 'none';
+        updateHealth();
+        toggleButtons(true);
+        typeText("Intissar enters the arena. The Exam is waiting...");
+    }
+
+    initGame();
+
+</script>
+</body>
+</html>
